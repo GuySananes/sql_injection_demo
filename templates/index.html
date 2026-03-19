@@ -1,0 +1,178 @@
+<!-- templates/index.html -->
+<!-- The main login form. Lets the user choose between vulnerable and secure mode. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Injection Demo</title>
+    <style>
+        /* Basic styling to make the demo clean and readable */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 60px auto;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        /* Mode toggle — two buttons side by side */
+        .mode-toggle {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+        }
+
+        .mode-toggle button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            background-color: #eee;
+            transition: background-color 0.2s;
+        }
+
+        /* Highlight the active mode */
+        .mode-toggle button.active-vulnerable {
+            background-color: #e74c3c;
+            color: white;
+            font-weight: bold;
+        }
+
+        .mode-toggle button.active-secure {
+            background-color: #27ae60;
+            color: white;
+            font-weight: bold;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background-color: #1a252f;
+        }
+
+        /* Hint box showing the injection payload */
+        .hint {
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #fef9e7;
+            border-left: 4px solid #f39c12;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+
+        .hint code {
+            background: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SQL Injection Demo</h1>
+    <p class="subtitle">Toggle between vulnerable and secure login modes</p>
+
+    <div class="card">
+
+        <!-- Mode toggle buttons — JavaScript switches which form action is used -->
+        <div class="mode-toggle">
+            <button id="btn-vulnerable"
+                    class="active-vulnerable"
+                    onclick="setMode('vulnerable')">
+                ❌ Vulnerable Mode
+            </button>
+            <button id="btn-secure"
+                    onclick="setMode('secure')">
+                ✅ Secure Mode
+            </button>
+        </div>
+
+        <!-- Single form — the action URL changes depending on the selected mode -->
+        <form id="login-form" action="/login/vulnerable" method="POST">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="e.g. admin" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="e.g. password123" required>
+
+            <button type="submit" class="submit-btn">Login</button>
+        </form>
+
+        <!-- Hint to guide the demo — shows the injection payload to try -->
+        <div class="hint">
+            💡 <strong>Try the attack:</strong> Enter <code>' OR '1'='1</code> as the username
+            with any password. Works in vulnerable mode, blocked in secure mode.
+        </div>
+
+    </div>
+
+    <script>
+        // Switches the form's action URL and updates button styles
+        function setMode(mode) {
+            const form = document.getElementById("login-form");
+            const btnVulnerable = document.getElementById("btn-vulnerable");
+            const btnSecure = document.getElementById("btn-secure");
+
+            if (mode === "vulnerable") {
+                form.action = "/login/vulnerable";
+                btnVulnerable.className = "active-vulnerable";
+                btnSecure.className = "";
+            } else {
+                form.action = "/login/secure";
+                btnSecure.className = "active-secure";
+                btnVulnerable.className = "";
+            }
+        }
+    </script>
+
+</body>
+</html>

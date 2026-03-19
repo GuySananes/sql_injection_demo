@@ -1,0 +1,148 @@
+<!-- templates/result.html -->
+<!-- Displays the login result, the SQL query that ran, and an explanation of what happened. -->
+<!-- Variables passed from app.py: success (bool), message (str), query (str), mode (str) -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 60px auto;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1 { text-align: center; }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Green banner for success, red for failure */
+        .result-banner {
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .success {
+            background-color: #d5f5e3;
+            color: #1e8449;
+            border: 1px solid #27ae60;
+        }
+
+        .failure {
+            background-color: #fadbd8;
+            color: #922b21;
+            border: 1px solid #e74c3c;
+        }
+
+        /* Shows the actual SQL query that was executed */
+        .query-box {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            margin-bottom: 20px;
+        }
+
+        .query-box .label {
+            color: #95a5a6;
+            font-size: 11px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Explanation box — tells the user what happened and why */
+        .explanation {
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .explanation-vulnerable {
+            background-color: #fef9e7;
+            border-left: 4px solid #f39c12;
+        }
+
+        .explanation-secure {
+            background-color: #eafaf1;
+            border-left: 4px solid #27ae60;
+        }
+
+        .back-btn {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #2c3e50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+
+        .back-btn:hover {
+            background-color: #1a252f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Login Result</h1>
+
+    <div class="card">
+
+        <!-- Result banner — color depends on whether login succeeded -->
+        <!-- Jinja2 conditional: 'success' is the variable passed from app.py -->
+        <div class="result-banner {{ 'success' if success else 'failure' }}">
+            {{ '✅ ' + message if success else '❌ ' + message }}
+        </div>
+
+        <!-- Show the SQL query that was actually executed -->
+        <div class="query-box">
+            <div class="label">SQL Query Executed</div>
+            {{ query }}
+        </div>
+
+        <!-- Explanation changes depending on mode and outcome -->
+        <div class="explanation {{ 'explanation-vulnerable' if mode == 'vulnerable' else 'explanation-secure' }}">
+            {% if mode == "vulnerable" and success %}
+                <strong>⚠️ Attack succeeded!</strong> The injected input manipulated the SQL query.
+                The condition <code>' OR '1'='1</code> made the WHERE clause always true,
+                returning all users and bypassing authentication entirely.
+            {% elif mode == "vulnerable" and not success %}
+                Login failed — the credentials didn't match. Try entering
+                <code>' OR '1'='1</code> as the username to demonstrate the attack.
+            {% elif mode == "secure" and success %}
+                <strong>✅ Legitimate login.</strong> Parameterized queries are in use.
+                The correct credentials were provided and matched the database record.
+            {% elif mode == "secure" and not success %}
+                <strong>🛡️ Attack blocked!</strong> Even with the injection payload,
+                the parameterized query treated the input as a literal string —
+                not as SQL. No user with that username exists, so login failed.
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- Back button — returns to the login form -->
+    <a href="/" class="back-btn">← Try Again</a>
+
+</body>
+</html>
