@@ -1,4 +1,4 @@
-blinker==1.8.2
+sblinker==1.8.2
 click==8.1.8
 Flask==3.0.3
 importlib_metadata==8.5.0
