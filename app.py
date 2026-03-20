@@ -21,6 +21,65 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def detect_injection_technique(username, password):
+    """
+    Analyzes the user input to identify which SQLi technique was used.
+    Returns a short label and explanation for display in the result page.
+    """
+    combined = (username + " " + password).upper()
+
+    if "--" in username or "#" in username:
+        return {
+            "technique": "Comment Injection",
+            "explanation": (
+                "The input used a SQL comment sequence (-- or #) to strip the rest of the query. "
+                "Everything after the comment marker is ignored by the database engine, "
+                "effectively nullifying the password check."
+            )
+        }
+    elif "UNION" in combined:
+        return {
+            "technique": "UNION-Based Injection",
+            "explanation": (
+                "The input attempted a UNION-based injection to append a second SELECT statement "
+                "and extract data from other tables. This technique can be used to dump "
+                "the entire database schema and contents."
+            )
+        }
+    elif "OR" in combined and ("1=1" in combined.replace(" ", "") or "'1'='1'" in combined.replace(" ", "")):
+        return {
+            "technique": "OR-Based Tautology (Classic)",
+            "explanation": (
+                "The input used a classic OR tautology — ' OR '1'='1. "
+                "Since '1'='1' is always true, the WHERE clause evaluates to true for every row, "
+                "returning all users and bypassing authentication."
+            )
+        }
+    elif "OR" in combined or "AND" in combined:
+        return {
+            "technique": "Boolean-Based Injection",
+            "explanation": (
+                "The input manipulated the WHERE clause using a boolean condition (OR/AND). "
+                "This altered the query logic to return rows that should not have matched."
+            )
+        }
+    elif "SLEEP" in combined or "WAITFOR" in combined or "BENCHMARK" in combined:
+        return {
+            "technique": "Time-Based Blind Injection",
+            "explanation": (
+                "The input attempted a time-based blind injection. "
+                "By injecting SLEEP() or WAITFOR DELAY, attackers can infer database "
+                "structure from response delays even when no data is returned."
+            )
+        }
+    else:
+        return {
+            "technique": "Unknown / Custom Payload",
+            "explanation": (
+                "The input contained characters or patterns that broke the expected query structure. "
+                "Manual review of the executed query is needed to understand the full impact."
+            )
+        }
 
 @app.route("/")
 def index():
@@ -36,23 +95,13 @@ def index():
 def login_vulnerable():
     """
     VULNERABLE login route — intentionally insecure.
-
-    The SQL query is built by directly concatenating user input into the query string.
-    This means an attacker can inject their own SQL and manipulate the query.
-
-    Example attack input:
-        username: ' OR '1'='1
-        password: anything
-
-    Resulting query:
-        SELECT * FROM users WHERE username = '' OR '1'='1' AND password = 'anything'
-    '1'='1' is always true → query returns all users → login succeeds.
+    Uses string concatenation to build the SQL query.
+    Fetches ALL matching rows to demonstrate data leakage.
     """
     username = request.form["username"]
     password = request.form["password"]
 
     # ❌ DANGEROUS: user input pasted directly into the query string
-    # An attacker controls what goes inside the quotes
     query = "SELECT * FROM users WHERE username = '" + username + "' AND password = '" + password + "'"
 
     conn = get_db_connection()
@@ -60,31 +109,41 @@ def login_vulnerable():
 
     try:
         cursor.execute(query)
-        user = cursor.fetchone()  # fetchone() returns the first matching row, or None
+        # fetchall() returns every row the query matched — not just the first one.
+        # This demonstrates that a successful injection leaks the entire table,
+        # not just grants access to one account.
+        rows = cursor.fetchall()
     except Exception as e:
-        # If the injected SQL causes a syntax error, catch it gracefully
         conn.close()
         return render_template("result.html",
                                success=False,
                                message=f"SQL Error: {str(e)}",
                                query=query,
-                               mode="vulnerable")
+                               mode="vulnerable",
+                               technique=None,
+                               leaked_rows=None)
 
     conn.close()
 
-    if user:
+    # Detect which SQLi technique was used — drives the dynamic explanation
+    injection_info = detect_injection_technique(username, password)
+
+    if rows:
         return render_template("result.html",
                                success=True,
                                message="Login successful! (Vulnerable mode)",
                                query=query,
-                               mode="vulnerable")
+                               mode="vulnerable",
+                               technique=injection_info,
+                               leaked_rows=[dict(row) for row in rows])
     else:
         return render_template("result.html",
                                success=False,
                                message="Login failed. (Vulnerable mode)",
                                query=query,
-                               mode="vulnerable")
-
+                               mode="vulnerable",
+                               technique=None,
+                               leaked_rows=None)
 
 @app.route("/login/secure", methods=["POST"])
 def login_secure():
@@ -122,14 +181,17 @@ def login_secure():
                                success=True,
                                message="Login successful! (Secure mode)",
                                query=display_query,
-                               mode="secure")
+                               mode="secure",
+                               technique=None,
+                               leaked_rows=None)
     else:
         return render_template("result.html",
                                success=False,
                                message="Login failed. (Secure mode)",
                                query=display_query,
-                               mode="secure")
-
+                               mode="secure",
+                               technique=None,
+                               leaked_rows=None)
 
 # Entry point — runs the Flask development server
 # debug=True enables auto-reload on file changes and detailed error pages

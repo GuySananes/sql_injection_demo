@@ -1,6 +1,6 @@
 <!-- templates/result.html -->
 <!-- Displays the login result, the SQL query that ran, and an explanation of what happened. -->
-<!-- Variables passed from app.py: success (bool), message (str), query (str), mode (str) -->
+<!-- Variables passed from app.py: success (bool), message (str), query (str), mode (str), technique (dict), leaked_rows (list) -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +26,6 @@
             margin-bottom: 20px;
         }
 
-        /* Green banner for success, red for failure */
         .result-banner {
             padding: 15px 20px;
             border-radius: 6px;
@@ -48,7 +47,6 @@
             border: 1px solid #e74c3c;
         }
 
-        /* Shows the actual SQL query that was executed */
         .query-box {
             background-color: #2c3e50;
             color: #ecf0f1;
@@ -68,7 +66,6 @@
             letter-spacing: 1px;
         }
 
-        /* Explanation box — tells the user what happened and why */
         .explanation {
             padding: 15px;
             border-radius: 6px;
@@ -84,6 +81,43 @@
         .explanation-secure {
             background-color: #eafaf1;
             border-left: 4px solid #27ae60;
+        }
+
+        /* Leaked data section */
+        .leak-header {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+
+        .leak-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .leak-table th {
+            background-color: #2c3e50;
+            color: white;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .leak-table td {
+            padding: 8px;
+            border: 1px solid #eee;
+        }
+
+        /* Alternating row colors via class — avoids Jinja2 inside style attributes */
+        .row-odd  { background-color: #fdf2f2; }
+        .row-even { background-color: white; }
+
+        .leak-footer {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
         }
 
         .back-btn {
@@ -108,40 +142,60 @@
 
     <div class="card">
 
-        <!-- Result banner — color depends on whether login succeeded -->
-        <!-- Jinja2 conditional: 'success' is the variable passed from app.py -->
+        <!-- Result banner — green on success, red on failure -->
         <div class="result-banner {{ 'success' if success else 'failure' }}">
             {{ '✅ ' + message if success else '❌ ' + message }}
         </div>
 
-        <!-- Show the SQL query that was actually executed -->
+        <!-- The actual SQL query that ran — key part of the demo -->
         <div class="query-box">
             <div class="label">SQL Query Executed</div>
             {{ query }}
         </div>
 
-        <!-- Explanation changes depending on mode and outcome -->
+        <!-- Dynamic explanation — changes based on mode and outcome -->
         <div class="explanation {{ 'explanation-vulnerable' if mode == 'vulnerable' else 'explanation-secure' }}">
-            {% if mode == "vulnerable" and success %}
-                <strong>⚠️ Attack succeeded!</strong> The injected input manipulated the SQL query.
-                The condition <code>' OR '1'='1</code> made the WHERE clause always true,
-                returning all users and bypassing authentication entirely.
+            {% if mode == "vulnerable" and success and technique %}
+                <strong>⚠️ Technique detected: {{ technique.technique }}</strong><br><br>
+                {{ technique.explanation }}
             {% elif mode == "vulnerable" and not success %}
-                Login failed — the credentials didn't match. Try entering
-                <code>' OR '1'='1</code> as the username to demonstrate the attack.
+                Login failed — the credentials didn't match. Try a payload from the cheatsheet.
             {% elif mode == "secure" and success %}
-                <strong>✅ Legitimate login.</strong> Parameterized queries are in use.
-                The correct credentials were provided and matched the database record.
+                <strong>✅ Legitimate login.</strong> Correct credentials provided and matched.
             {% elif mode == "secure" and not success %}
-                <strong>🛡️ Attack blocked!</strong> Even with the injection payload,
-                the parameterized query treated the input as a literal string —
-                not as SQL. No user with that username exists, so login failed.
+                <strong>🛡️ Attack blocked.</strong> The parameterized query treated the input as a
+                literal string — not as SQL. No matching user was found.
             {% endif %}
         </div>
 
+        <!-- Leaked data table — only shown when injection succeeds -->
+        <!-- Demonstrates that SQLi isn't just auth bypass — it leaks the entire table -->
+        {% if leaked_rows %}
+        <div class="leak-header">
+            ⚠️ Data Leaked — {{ leaked_rows|length }} row(s) exposed from the database:
+        </div>
+        <table class="leak-table">
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Password</th>
+            </tr>
+            {% for row in leaked_rows %}
+            <tr class="{{ 'row-odd' if loop.index is odd else 'row-even' }}">
+                <td>{{ row.id }}</td>
+                <td>{{ row.username }}</td>
+                <td>{{ row.password }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <div class="leak-footer">
+            In a real attack, this data would be silently exfiltrated. The attacker now has
+            credentials for every account in the database.
+        </div>
+        {% endif %}
+
     </div>
 
-    <!-- Back button — returns to the login form -->
     <a href="/" class="back-btn">← Try Again</a>
 
 </body>
