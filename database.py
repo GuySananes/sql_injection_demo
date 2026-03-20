@@ -25,12 +25,21 @@ def init_db():
         )
     """)
 
-    # Wipe existing users so re-running this script doesn't create duplicates
-    cursor.execute("DELETE FROM users")
+    # Only seed if the table is empty — avoids wiping data on every restart
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
 
-    # Seed one test user — these are the credentials we'll use to test the app
-    # In a real app, the password would be hashed (e.g. with bcrypt), never stored as plaintext
-    cursor.execute("INSERT INTO users (username, password) VALUES ('admin', 'password123')")
+        # Only seed if the table is empty — avoids wiping data on every restart
+        cursor.execute("SELECT COUNT(*) FROM users")
+        if cursor.fetchone()[0] == 0:
+            cursor.executemany(
+                "INSERT INTO users (username, password) VALUES (?, ?)",
+                [
+                    ("admin", "password123"),
+                    ("alice", "qwerty456"),
+                    ("bob", "letmein789"),
+                ]
+            )
 
     # commit() saves the changes to disk — without this, nothing is persisted
     conn.commit()

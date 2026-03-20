@@ -115,7 +115,7 @@ def login_secure():
     conn.close()
 
     # For display purposes, show the query with the actual values substituted in
-    display_query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
+    display_query = "SELECT * FROM users WHERE username = ? AND password = ?"
 
     if user:
         return render_template("result.html",
